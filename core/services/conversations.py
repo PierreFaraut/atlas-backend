@@ -7,7 +7,7 @@ def get_all_messages_by_conversation_id(conversation_id: str):
         supabase_client.table("messages")
         .select("*")
         .eq("conversation_id", conversation_id)
-        .order("created_at", ascending=True)
+        .order("created_at", desc=False)
         .execute()
     )
 
