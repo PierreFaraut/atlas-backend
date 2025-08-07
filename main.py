@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import asyncio
 from core.research_agent import research_agent as agent
 from core.models.agent_models import TransactionDeps
 from core.agent_utils import process_chat_with_full_details
@@ -39,11 +38,11 @@ def new_message_request(request):
     else:
         return "No conversation_id provided", 400
 
-    async def run_agent():
+    def run_agent():
         new_message = save_message(conversation_id, content="", is_loading=True)
         new_transaction = TransactionDeps(message_id=new_message.id)
 
-        async for message in process_chat_with_full_details(
+        for message in process_chat_with_full_details(
             user_input, agent, new_transaction
         ):
             if message.get("message_type") == "final_response":
@@ -54,5 +53,5 @@ def new_message_request(request):
                     id=new_message.id,
                 )
 
-    asyncio.run(run_agent())
+    run_agent()
     return "OK", 200
