@@ -1,3 +1,4 @@
+import functions_framework
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -7,92 +8,51 @@ from core.research_agent import research_agent as agent
 from core.models.agent_models import TransactionDeps
 from core.agent_utils import process_chat_with_full_details
 
-from rich.console import Console
-from rich.text import Text
-
 from core.services.messages import save_message
 
-console = Console()
 
-# Color mapping for message_type
-MESSAGE_TYPE_STYLES = {
-    "user_input": "bold cyan",
-    "agent_internal": "dim white",
-    "agent_tool_call": "bold yellow",
-    "agent_tool_result": "green",
-    "agent_thinking": "italic magenta",
-    "agent_system_prompt": "bold blue",
-    "user_prompt": "cyan",
-    "retry_prompt": "bold red",
-    "final_response": "bold green",
-    "error": "bold red",
-    "other": "white",
-    "unknown": "bold red",
-}
+@functions_framework.http
+def research_agent(request):
+    """HTTP Cloud Function.
+    Args:
+        request (flask.Request): The request object.
+        <https://flask.palletsprojects.com/en/1.1.x/api/#incoming-request-data>
+    Returns:
+        The response text, or any set of values that can be turned into a
+        Response object using `make_response`
+        <https://flask.palletsprojects.com/en/1.1.x/api/#flask.make_response>.
+    """
+    request_json = request.get_json(silent=True)
+    request_args = request.args
 
-ICON_MAP = {
-    "user_input": "👤",
-    "agent_internal": "🤖",
-    "agent_tool_call": "🔧",
-    "agent_tool_result": "📊",
-    "agent_thinking": "💭",
-    "agent_system_prompt": "🛠️",
-    "user_prompt": "👤",
-    "retry_prompt": "🔄",
-    "final_response": "✅",
-    "error": "❌",
-    "other": "❓",
-    "unknown": "❓",
-}
+    if request_json and "user_input" in request_json:
+        user_input = request_json["user_input"]
+    elif request_args and "user_input" in request_args:
+        user_input = request_args["user_input"]
+    else:
+        return "No user_input provided", 400
 
+    if request_json and "conversation_id" in request_json:
+        conversation_id = request_json["conversation_id"]
+    elif request_args and "conversation_id" in request_args:
+        conversation_id = request_args["conversation_id"]
+    else:
+        return "No conversation_id provided", 400
 
-def print_rich_message(message: dict):
-    message_type = message.get("message_type", "other")
-    style = MESSAGE_TYPE_STYLES.get(message_type, "white")
-    icon = ICON_MAP.get(message_type, "")
-    content = message.get("content", "")
-    timestamp = message.get("timestamp", "")
-    role = message.get("role", "")
+    async def run_agent():
+        new_message = save_message(conversation_id, content="", is_loading=True)
+        new_transaction = TransactionDeps(message_id=new_message.id)
 
-    # Compose header
-    header = f"[{timestamp}]"
-    if role:
-        header += f" [{role.upper()}]"
-    if icon:
-        header += f" {icon}"
+        async for message in process_chat_with_full_details(
+            user_input, agent, new_transaction
+        ):
+            if message.get("message_type") == "final_response":
+                save_message(
+                    conversation_id,
+                    content=message.get("content"),
+                    is_loading=False,
+                    id=new_message.id,
+                )
 
-    # Compose text
-    text = Text(header, style="dim") + Text(" ")
-
-    # Main content
-    text.append(str(content), style=style)
-
-    console.print(text)
-
-
-async def main():
-    conversation_id = "b1a3b532-3327-4031-a535-a7a349ad4660"
-    new_message = save_message(conversation_id, content="", is_loading=True)
-    new_transaction = TransactionDeps(message_id=new_message.id)
-
-    user_input = "How many pokemon are there in all generations? "
-
-    async for message in process_chat_with_full_details(
-        user_input, agent, new_transaction
-    ):
-        # print_rich_message(message)
-
-        ## All tools
-        ## Final response should be saved to database in a new message with message_type "final_response"
-        if message.get("message_type") == "final_response":
-            new_message = save_message(
-                conversation_id,
-                content=message.get("content"),
-                is_loading=False,
-                id=new_message.id,
-            )
-            print(new_message)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(run_agent())
+    return "OK", 200
