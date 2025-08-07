@@ -56,7 +56,7 @@ DB_PATH = "data/pokedex.sqlite"
 
 @research_agent.tool
 def search_the_web(ctx: RunContext[str], query: str, description: str) -> str:
-    """Searches the web for a given query using Exa and returns the results. Must provide a description to explain the goal of the search."""
+    """Searches the web for a given query using Exa and returns the results. Must provide a description to explain the goal of the search in the style of "We need to ..." """
 
     new_step = save_search_step(
         message_id=ctx.deps.message_id,
@@ -84,7 +84,7 @@ def list_database_tables(
     ctx: RunContext[str],
     description: str = "List all tables available in the internal SQLite database",
 ) -> str:
-    """Lists all tables available in the internal SQLite database. Must provide a description to explain the goal of the search."""
+    """Lists all tables available in the internal SQLite database. Must provide a description  in the style of "We need to ..." to explain the goal of the search."""
 
     new_step = save_database_step(
         message_id=ctx.deps.message_id,
@@ -128,7 +128,7 @@ def get_table_schema(
     table_name: str,
     description: str = "Get the schema for a specific table in the database",
 ) -> str:
-    """Returns the schema (columns and their types) for a specific table in the database. Must provide a description to explain the goal of the search."""
+    """Returns the schema (columns and their types) for a specific table in the database. Must provide a description  in the style of "We need to ..." to explain the goal of the search."""
 
     new_step = save_database_step(
         message_id=ctx.deps.message_id,
@@ -174,7 +174,7 @@ def run_sql_query(
     query: str,
     description: str = "Run a SQL query against the internal database",
 ) -> str:
-    """Executes a SQL query against the internal database. Must provide a description to explain the goal of the query."""
+    """Executes a SQL query against the internal database. Must provide a description  in the style of "We need to ..." to explain the goal of the query."""
 
     new_step = save_database_step(
         message_id=ctx.deps.message_id,
