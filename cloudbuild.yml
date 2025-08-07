@@ -1,0 +1,21 @@
+steps:
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'gcloud'
+    args:
+    - 'functions'
+    - 'deploy'
+    - 'atlas_new_message' # This is the name of your Cloud Function
+    - '--runtime=python313'
+    - '--trigger-http'
+    - '--entry-point=atlas_new_message' # This is the name of the function in main.py
+    - '--source=.'
+    - '--region=northamerica-northeast1' # IMPORTANT: Change to your desired GCP region
+    - '--allow-unauthenticated' # IMPORTANT: Consider restricting access for production
+    - '--memory=256MB' # Adjust as needed
+    - '--timeout=60s' # Adjust as needed (in seconds)
+    - '--gen2'
+    # id: 'deploy-function'
+
+# options:
+#   # Overall build timeout (e.g., 10 minutes)
+#   timeout: 600s
