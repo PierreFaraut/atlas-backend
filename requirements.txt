@@ -121,3 +121,4 @@ wcwidth==0.2.13
 websockets==15.0.1
 yarl==1.20.1
 zipp==3.23.0
+functions-framework==3.*
