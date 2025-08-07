@@ -19,7 +19,7 @@ from core.services.messages import save_message
 
 
 @functions_framework.http
-def new_message_request(request):
+async def new_message_request(request):
     """HTTP Cloud Function.
     Args:
         request (flask.Request): The request object.
@@ -33,8 +33,8 @@ def new_message_request(request):
     request_json = request.get_json(silent=True)
     request_args = request.args
 
-    logger.debug(f"request_json: {request_json}")
-    logger.debug(f"request_args: {request_args}")
+    logger.info(f"request_json: {request_json}")
+    logger.info(f"request_args: {request_args}")
 
     if request_json and "user_input" in request_json:
         user_input = request_json["user_input"]
@@ -56,7 +56,7 @@ def new_message_request(request):
         logger.warning("No conversation_id provided")
         return "No conversation_id provided", 400
 
-    def run_agent():
+    async def run_agent():
         logger.info(f"Saving new message for conversation_id={conversation_id}")
         new_message = save_message(conversation_id, content="", is_loading=True)
         logger.info(f"New message saved with id={new_message.id}")
@@ -64,7 +64,7 @@ def new_message_request(request):
         logger.info(f"Created TransactionDeps with message_id={new_message.id}")
 
         try:
-            for message in process_chat_with_full_details(
+            async for message in process_chat_with_full_details(
                 user_input, agent, new_transaction
             ):
                 logger.info(f"Agent message: {message}")
@@ -81,7 +81,7 @@ def new_message_request(request):
             raise
 
     try:
-        run_agent()
+        await run_agent()
         logger.info("Agent run completed successfully.")
         return "OK", 200
     except Exception as e:

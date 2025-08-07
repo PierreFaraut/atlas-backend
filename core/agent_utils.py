@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Generator
+from typing import Any, AsyncGenerator
 from datetime import datetime, timezone
 
 from pydantic_ai import Agent
@@ -20,9 +20,9 @@ from core.models.agent_models import TransactionDeps
 
 
 # Non-streaming chat processor (removed streaming feature, now fully synchronous)
-def process_chat_with_full_details(
+async def process_chat_with_full_details(
     user_prompt: str, agent: Agent, transaction: TransactionDeps
-) -> Generator[dict[str, Any], None, None]:
+) -> AsyncGenerator[dict[str, Any], None]:
     """Process chat and yield all messages including thinking, tools, and processing steps.
 
     IMPROVEMENTS MADE:
@@ -52,7 +52,7 @@ def process_chat_with_full_details(
 
     try:
         # Run the agent without streaming (synchronous)
-        complete_result = agent.run(
+        complete_result = await agent.run(
             user_prompt, message_history=message_history, deps=transaction
         )
 
