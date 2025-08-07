@@ -4,7 +4,6 @@ from typing import Any, AsyncGenerator, List
 from datetime import datetime, timezone
 
 from pydantic_ai import Agent
-from pydantic_ai.message import AIMessage, BaseMessage, HumanMessage
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -26,7 +25,7 @@ async def process_chat_with_full_details(
     user_prompt: str,
     agent: Agent,
     transaction: TransactionDeps,
-    message_history: List[BaseMessage],
+    message_history: List[ModelMessage],
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Process chat and yield all messages including thinking, tools, and processing steps.
 
@@ -190,14 +189,14 @@ async def process_chat_with_full_details(
 ## We need to define a function that will take all the messages from a conversation and prepare them for the agent to use.
 
 
-def prepare_messages_for_agent(conversation_id: str) -> List[BaseMessage]:
+def prepare_messages_for_agent(conversation_id: str) -> list[ModelMessage]:
     """
     Retrieves all messages from a conversation and prepares them for the agent.
-    It transforms the messages from the database into a list of HumanMessage and AIMessage objects.
+    It transforms the messages from the database into a list of ModelRequest and ModelResponse objects.
     """
     db_messages = get_all_messages_by_conversation_id(conversation_id)
 
-    agent_messages: List[BaseMessage] = []
+    agent_messages: list[ModelMessage] = []
 
     for msg in db_messages:
         # We don't want to include messages that are still loading
@@ -206,8 +205,8 @@ def prepare_messages_for_agent(conversation_id: str) -> List[BaseMessage]:
             continue
 
         if msg.role == "user":
-            agent_messages.append(HumanMessage(content=msg.content))
+            agent_messages.append(ModelRequest(parts=[UserPromptPart(content=msg.content)]))
         elif msg.role == "assistant":
-            agent_messages.append(AIMessage(content=msg.content))
+            agent_messages.append(ModelResponse(parts=[TextPart(content=msg.content)]))
 
     return agent_messages
