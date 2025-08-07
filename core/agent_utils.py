@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, List
 from datetime import datetime, timezone
 
 from pydantic_ai import Agent
+from pydantic_ai.message import AIMessage, BaseMessage, HumanMessage
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -17,11 +18,15 @@ from pydantic_ai.messages import (
     RetryPromptPart,
 )
 from core.models.agent_models import TransactionDeps
+from core.services.conversations import get_all_messages_by_conversation_id
 
 
 # Non-streaming chat processor (removed streaming feature, now fully synchronous)
 async def process_chat_with_full_details(
-    user_prompt: str, agent: Agent, transaction: TransactionDeps
+    user_prompt: str,
+    agent: Agent,
+    transaction: TransactionDeps,
+    message_history: List[BaseMessage],
 ) -> AsyncGenerator[dict[str, Any], None]:
     """Process chat and yield all messages including thinking, tools, and processing steps.
 
@@ -46,9 +51,6 @@ async def process_chat_with_full_details(
         "content": user_prompt,
         "message_type": "user_input",
     }
-
-    # Initialize message history
-    message_history: list[ModelMessage] = []
 
     try:
         # Run the agent without streaming (synchronous)
@@ -183,3 +185,29 @@ async def process_chat_with_full_details(
             "content": f"Error processing request: {str(e)}",
             "message_type": "error",
         }
+
+
+## We need to define a function that will take all the messages from a conversation and prepare them for the agent to use.
+
+
+def prepare_messages_for_agent(conversation_id: str) -> List[BaseMessage]:
+    """
+    Retrieves all messages from a conversation and prepares them for the agent.
+    It transforms the messages from the database into a list of HumanMessage and AIMessage objects.
+    """
+    db_messages = get_all_messages_by_conversation_id(conversation_id)
+
+    agent_messages: List[BaseMessage] = []
+
+    for msg in db_messages:
+        # We don't want to include messages that are still loading
+        # or assistant messages that are just placeholders for tool calls without final content.
+        if msg.is_loading or (msg.role == "assistant" and not msg.content):
+            continue
+
+        if msg.role == "user":
+            agent_messages.append(HumanMessage(content=msg.content))
+        elif msg.role == "assistant":
+            agent_messages.append(AIMessage(content=msg.content))
+
+    return agent_messages

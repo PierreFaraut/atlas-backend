@@ -13,12 +13,16 @@ load_dotenv()
 
 from core.research_agent import research_agent as agent
 from core.models.agent_models import TransactionDeps
-from core.agent_utils import process_chat_with_full_details
+from core.agent_utils import (
+    process_chat_with_full_details,
+    prepare_messages_for_agent,
+)
 
 from core.services.messages import save_message
 
 
 import asyncio
+
 
 @functions_framework.http
 def new_message_request(request):
@@ -65,9 +69,16 @@ def new_message_request(request):
         new_transaction = TransactionDeps(message_id=new_message.id)
         logger.info(f"Created TransactionDeps with message_id={new_message.id}")
 
+        # Prepare historical messages for the agent
+        message_history = prepare_messages_for_agent(conversation_id)
+        logger.info(f"Prepared {len(message_history)} messages for the agent.")
+
         try:
             async for message in process_chat_with_full_details(
-                user_input, agent, new_transaction
+                user_prompt=user_input,
+                agent=agent,
+                transaction=new_transaction,
+                message_history=message_history,
             ):
                 logger.info(f"Agent message: {message}")
                 if message.get("message_type") == "final_response":
