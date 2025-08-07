@@ -18,8 +18,10 @@ from core.agent_utils import process_chat_with_full_details
 from core.services.messages import save_message
 
 
+import asyncio
+
 @functions_framework.http
-async def new_message_request(request):
+def new_message_request(request):
     """HTTP Cloud Function.
     Args:
         request (flask.Request): The request object.
@@ -81,7 +83,7 @@ async def new_message_request(request):
             raise
 
     try:
-        await run_agent()
+        asyncio.run(run_agent())
         logger.info("Agent run completed successfully.")
         return "OK", 200
     except Exception as e:
