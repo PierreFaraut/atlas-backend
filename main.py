@@ -63,10 +63,6 @@ def new_message_request(request):
         return "No conversation_id provided", 400
 
     async def run_agent():
-        # Save the user's message first
-        save_message(conversation_id, content=user_input, role="user")
-        logger.info(f"Saved user message for conversation_id={conversation_id}")
-
         logger.info(f"Saving new message for conversation_id={conversation_id}")
         new_message = save_message(conversation_id, content="", is_loading=True)
         logger.info(f"New message saved with id={new_message.id}")
